@@ -1,0 +1,236 @@
+{% extends "drowsiness/base.html" %}
+{% load static %}
+
+{% block title %}Detection — Drowsiness Detection System{% endblock %}
+
+{% block extra_styles %}
+<link rel="stylesheet" href="{% static 'css/detect.css' %}">
+{% endblock %}
+
+{% block content %}
+<audio id="alarm-audio" loop>
+    <source src="{% static 'alarm.mp3' %}" type="audio/mpeg">
+</audio>
+
+<div class="detect-layout">
+
+    <!-- VIDEO PANEL -->
+    <div class="video-panel">
+        <div id="start-overlay">
+            <span style="font-size:3rem">👁️</span>
+            <h2>Ready to Monitor</h2>
+            <p>Click start to activate the camera and begin real-time drowsiness detection.</p>
+            <button id="start-btn">▶ &nbsp;Start Detection</button>
+        </div>
+
+        <img class="video-feed" src="/video/" width="640" height="480" alt="Camera feed">
+
+        <div class="bracket bracket-tl"></div>
+        <div class="bracket bracket-tr"></div>
+        <div class="bracket bracket-bl"></div>
+        <div class="bracket bracket-br"></div>
+
+        <div class="rec-badge">
+            <span class="rec-dot"></span>
+            LIVE
+        </div>
+    </div>
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+
+        <div class="sidebar-section">
+            <div class="sidebar-label">Driver Status</div>
+            <div id="status-card" class="active">
+                <span id="status-icon">✅</span>
+                <div id="status-text">ACTIVE</div>
+                <div id="status-sub">Eyes open — monitoring</div>
+            </div>
+            <button id="mute-btn">🔔 &nbsp;Mute Alarm</button>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-label">Session Stats</div>
+            <div class="stats-row">
+                <div class="mini-stat">
+                    <span class="val" id="stat-alerts" style="color:var(--danger)">0</span>
+                    <span class="lbl">Alerts fired</span>
+                </div>
+                <div class="mini-stat">
+                    <span class="val" id="stat-time" style="color:var(--text)">0:00</span>
+                    <span class="lbl">Session time</span>
+                </div>
+                <div class="mini-stat">
+                    <span class="val" id="stat-drowsy" style="color:var(--warn)">0</span>
+                    <span class="lbl">Drowsy events</span>
+                </div>
+                <div class="mini-stat">
+                    <span class="val" id="stat-yawn" style="color:var(--warn)">0</span>
+                    <span class="lbl">Yawn events</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar-section" style="flex:1">
+            <div class="sidebar-label">Event Log</div>
+            <div id="event-log">
+                <div class="log-entry">
+                    <span class="log-dot" style="background:var(--muted)"></span>
+                    <span class="log-time">--:--</span>
+                    <span class="log-msg">Waiting for detection to start...</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar-section" id="debug-section" style="display:none">
+            <div class="sidebar-label">Debug</div>
+            <div id="debug-log"></div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    let muted = false;
+    let audioUnlocked = false;
+    let lastStatus = 'ACTIVE';
+    let alertCount = 0, drowsyCount = 0, yawnCount = 0;
+    let sessionStart = null;
+
+    const alarm = document.getElementById('alarm-audio');
+    alarm.load();
+
+    setInterval(() => {
+        if (!sessionStart) return;
+        const secs = Math.floor((Date.now() - sessionStart) / 1000);
+        const m = Math.floor(secs / 60);
+        const s = secs % 60;
+        document.getElementById('stat-time').textContent = m + ':' + String(s).padStart(2,'0');
+    }, 1000);
+
+    function logEvent(msg, color) {
+        const log = document.getElementById('event-log');
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+        const t = new Date();
+        const time = t.getHours() + ':' + String(t.getMinutes()).padStart(2,'0') + ':' + String(t.getSeconds()).padStart(2,'0');
+        entry.innerHTML = `
+            <span class="log-dot" style="background:${color}"></span>
+            <span class="log-time">${time}</span>
+            <span class="log-msg">${msg}</span>`;
+        log.prepend(entry);
+        if (log.children.length > 20) log.lastChild.remove();
+    }
+
+    function debugLog(msg) {
+        const sec = document.getElementById('debug-section');
+        const log = document.getElementById('debug-log');
+        sec.style.display = '';
+        const line = document.createElement('div');
+        line.textContent = msg;
+        log.prepend(line);
+        if (log.children.length > 8) log.lastChild.remove();
+    }
+
+    document.getElementById('start-btn').addEventListener('click', () => {
+        alarm.volume = 0;
+        alarm.play().then(() => {
+            alarm.pause();
+            alarm.currentTime = 0;
+            alarm.volume = 1;
+            audioUnlocked = true;
+        }).catch(err => {
+            alarm.volume = 1;
+            audioUnlocked = true;
+            debugLog('Audio unlock: ' + err.message);
+        });
+
+        document.getElementById('start-overlay').style.display = 'none';
+        sessionStart = Date.now();
+        logEvent('Detection started', 'var(--safe)');
+        setInterval(updateStatus, 200);
+    });
+
+    document.getElementById('mute-btn').addEventListener('click', () => {
+        muted = !muted;
+        const btn = document.getElementById('mute-btn');
+        btn.classList.toggle('muted', muted);
+        btn.textContent = muted ? '🔕  Alarm muted' : '🔔  Mute Alarm';
+        if (muted) stopAlarm();
+        logEvent(muted ? 'Alarm muted' : 'Alarm unmuted', 'var(--muted)');
+    });
+
+    function playAlarm() {
+        if (muted || !audioUnlocked || !alarm.paused) return;
+        alarm.currentTime = 0;
+        alarm.play().catch(err => debugLog('Play failed: ' + err.message));
+        alertCount++;
+        document.getElementById('stat-alerts').textContent = alertCount;
+    }
+
+    function stopAlarm() {
+        if (!alarm.paused) { alarm.pause(); alarm.currentTime = 0; }
+    }
+
+    function updateStatus() {
+        fetch('/status/')
+            .then(r => r.json())
+            .then(data => {
+                const status  = data.status;
+                const card    = document.getElementById('status-card');
+                const icon    = document.getElementById('status-icon');
+                const text    = document.getElementById('status-text');
+                const sub     = document.getElementById('status-sub');
+
+                const isDrowsy   = status === 'DROWSY' || status === 'YAWNING';
+                const wasAlert   = lastStatus === 'ACTIVE';
+                const justClosed = wasAlert && isDrowsy;
+                const justOpened = !wasAlert && status === 'ACTIVE';
+
+                if (justClosed) {
+                    playAlarm();
+                    if (status === 'DROWSY') {
+                        drowsyCount++;
+                        document.getElementById('stat-drowsy').textContent = drowsyCount;
+                        logEvent('Drowsiness detected', 'var(--danger)');
+                    } else {
+                        yawnCount++;
+                        document.getElementById('stat-yawn').textContent = yawnCount;
+                        logEvent('Yawning detected', 'var(--warn)');
+                    }
+                }
+
+                if (justOpened) {
+                    playAlarm();
+                    logEvent('Eyes reopened', 'var(--safe)');
+                }
+
+                if (status === 'ACTIVE' && lastStatus === 'ACTIVE') stopAlarm();
+
+                card.className = '';
+                if (status === 'DROWSY') {
+                    card.classList.add('drowsy');
+                    icon.textContent = '⚠️';
+                    text.textContent = 'DROWSY';
+                    sub.textContent  = 'Wake up — eyes closing!';
+                    text.style.color = 'var(--danger)';
+                } else if (status === 'YAWNING') {
+                    card.classList.add('yawning');
+                    icon.textContent = '😪';
+                    text.textContent = 'YAWNING';
+                    sub.textContent  = 'Stay alert — yawn detected';
+                    text.style.color = 'var(--warn)';
+                } else {
+                    card.classList.add('active');
+                    icon.textContent = '✅';
+                    text.textContent = 'ACTIVE';
+                    sub.textContent  = 'Eyes open — monitoring';
+                    text.style.color = 'var(--safe)';
+                }
+
+                lastStatus = status;
+            })
+            .catch(err => debugLog('/status/ error: ' + err.message));
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,123 @@
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+    --bg:        #080c12;
+    --bg2:       #0e1420;
+    --bg3:       #141c2e;
+    --border:    rgba(255,255,255,0.07);
+    --accent:    #e8503a;
+    --accent2:   #f07c38;
+    --text:      #eef0f4;
+    --muted:     #6b7490;
+    --safe:      #2dbe8a;
+    --warn:      #f5a623;
+    --danger:    #e8503a;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+/* ── NAV ── */
+nav {
+    position: fixed; top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 40px;
+    height: 64px;
+    background: rgba(8,12,18,0.85);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+}
+
+.nav-logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.2rem;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    text-decoration: none;
+    display: flex; align-items: center; gap: 10px;
+}
+
+.nav-logo .dot {
+    width: 8px; height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+.nav-links { display: flex; gap: 8px; }
+
+.nav-links a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: 6px;
+    transition: color 0.2s, background 0.2s;
+}
+
+.nav-links a:hover,
+.nav-links a.active {
+    color: var(--text);
+    background: var(--bg3);
+}
+
+.nav-links a.active { color: var(--accent); }
+
+.nav-cta {
+    background: var(--accent) !important;
+    color: var(--text) !important;
+    border-radius: 8px !important;
+    padding: 7px 18px !important;
+}
+.nav-cta:hover { opacity: 0.88; background: var(--accent) !important; }
+
+/* ── PAGE WRAPPER ── */
+main { padding-top: 64px; min-height: 100vh; }
+
+/* ── FOOTER ── */
+footer {
+    border-top: 1px solid var(--border);
+    padding: 32px 40px;
+    display: flex; align-items: center; justify-content: space-between;
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
+footer strong { color: var(--text); font-family: 'Syne', sans-serif; }
+
+/* ── SHARED UTILITIES ── */
+.tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(232,80,58,0.12);
+    border: 1px solid rgba(232,80,58,0.25);
+    color: var(--accent);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 20px;
+}
+
+.card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+}
