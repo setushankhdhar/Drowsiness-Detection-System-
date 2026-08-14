@@ -58,14 +58,6 @@ The system monitors the driver's eyes through a webcam and detects drowsiness ba
 ![WhatsApp Image 2026-03-26 at 1 15 13 PM](https://github.com/user-attachments/assets/26fb24ab-b637-4a32-8383-0771e2f38a41)
 
 
----
-
-## 🎥 Demo Video
-
-[▶️ Watch Demo]
-
-https://github.com/user-attachments/assets/182a2250-af85-456b-b48e-43628b048959
-
 
 
 ---
